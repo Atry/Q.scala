@@ -13,7 +13,6 @@ import scala.reflect.internal.annotations.compileTimeOnly
   * @author 杨博 (Yang Bo) &lt;pop.atry@gmail.com&gt;
   */
 object Q {
-
   import scala.language.experimental.macros
 
   private[thoughtworks] def isRootPackage(symbol: Symbols#Symbol): Boolean = {
@@ -23,7 +22,8 @@ object Q {
       true
     } else {
       symbol match {
-        case internalSymbol: scala.reflect.internal.Symbols#Symbol if internalSymbol.isRoot || internalSymbol.isRootPackage =>
+        case internalSymbol: scala.reflect.internal.Symbols#Symbol
+            if internalSymbol.isRoot || internalSymbol.isRootPackage =>
           true
         case _ =>
           false
@@ -32,7 +32,6 @@ object Q {
   }
 
   private[thoughtworks] final case class MacroBundle[U <: Universe](universe: U) {
-
     import universe._
 
     /**
@@ -40,7 +39,6 @@ object Q {
       */
     @compileTimeOnly("This method should never be called!")
     private def implicitDynamicLift = ???
-
 
     // TODO: import management
     private[thoughtworks] final def fullyQualifiedSymbolTree(symbol: Symbols#Symbol): Tree = {
@@ -89,25 +87,27 @@ object Q {
     private[Q] final def treeOf(value: Any): universe.Tree = {
       import universe._
       value match {
-        case null => q"""null"""
-        case expr: Expr[_] => q"""_root_.scala.reflect.runtime.universe.reify($expr)"""
-        case typed: String => q"""$typed"""
-        case typed: Unit => q"""$typed"""
-        case typed: Char => q"""$typed"""
-        case typed: Double => q"""$typed"""
-        case typed: Float => q"""$typed"""
-        case typed: Long => q"""$typed"""
-        case typed: Int => q"""$typed"""
-        case typed: Short => q"""$typed"""
-        case typed: Byte => q"""$typed"""
+        case null                 => q"""null"""
+        case expr: Expr[_]        => q"""_root_.scala.reflect.runtime.universe.reify($expr)"""
+        case typed: String        => q"""$typed"""
+        case typed: Unit          => q"""$typed"""
+        case typed: Char          => q"""$typed"""
+        case typed: Double        => q"""$typed"""
+        case typed: Float         => q"""$typed"""
+        case typed: Long          => q"""$typed"""
+        case typed: Int           => q"""$typed"""
+        case typed: Short         => q"""$typed"""
+        case typed: Byte          => q"""$typed"""
         case symbol: scala.Symbol => q"""$symbol"""
-        case file: File => q"""new _root_.java.io.File(${file.getPath})"""
-        case url: URL => q"""new _root_.java.net.URL(${url.toString})"""
-        case uri: URI => q"""new _root_.java.net.URI(${uri.toString})"""
-        case uuid: UUID => q"""_root_.java.util.UUID.fromString(${uuid.toString})"""
+        case file: File           => q"""new _root_.java.io.File(${file.getPath})"""
+        case url: URL             => q"""new _root_.java.net.URL(${url.toString})"""
+        case uri: URI             => q"""new _root_.java.net.URI(${uri.toString})"""
+        case uuid: UUID           => q"""_root_.java.util.UUID.fromString(${uuid.toString})"""
         case array: Array[_] =>
           import scala.reflect.runtime.currentMirror
-          val elementTypeTree = fullyQualifiedSymbolTreeWithRootPrefix(currentMirror.classSymbol(array.getClass.getComponentType))
+          val elementTypeTree = fullyQualifiedSymbolTreeWithRootPrefix(
+            currentMirror.classSymbol(array.getClass.getComponentType)
+          )
           val elementTrees = (for {
             element <- array.view
           } yield {
@@ -154,18 +154,15 @@ object Q {
             }
           }
       }
-
     }
   }
 
-
-  implicit def implicitDynamicLift[U <: Universe, A](implicit tag: U#WeakTypeTag[A]): U#Liftable[A] = {
-    dynamicLift[A](tag.mirror.universe)
+  implicit def implicitDynamicLift[U <: Universe: ValueOf, A]: U#Liftable[A] = {
+    dynamicLift[A](valueOf[U])
   }
 
-
-  def exprOf[U <: Universe, A](value: A)(implicit tag: U#WeakTypeTag[A]): U#Expr[A] = {
-    import tag.mirror.universe
+  def exprOf[U <: Universe: ValueOf, A](value: A): U#Expr[A] = {
+    val universe = valueOf[U]
     import universe._
     val treeCreator = new TreeCreator {
       def apply[U <: Universe with Singleton](m: scala.reflect.api.Mirror[U]): U#Tree = {
@@ -183,5 +180,4 @@ object Q {
       }
     }
   }
-
 }
